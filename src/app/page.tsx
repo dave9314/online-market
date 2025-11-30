@@ -30,21 +30,32 @@ export default function Home() {
     setLoading(true)
 
     try {
+      console.log("Attempting login for:", loginData.username)
+      
       const result = await signIn("credentials", {
         username: loginData.username,
         password: loginData.password,
         redirect: false,
       })
 
+      console.log("Login result:", result)
+
       if (result?.error) {
+        console.error("Login error:", result.error)
         setError("Invalid username or password")
         setLoading(false)
       } else if (result?.ok) {
+        console.log("Login successful, redirecting...")
         // Successfully signed in, redirect to dashboard
-        window.location.href = "/dashboard"
+        router.push("/dashboard")
+      } else {
+        console.error("Unexpected login result:", result)
+        setError("Login failed. Please try again.")
+        setLoading(false)
       }
     } catch (err) {
-      setError("Something went wrong")
+      console.error("Login exception:", err)
+      setError("Something went wrong. Please try again.")
       setLoading(false)
     }
   }
