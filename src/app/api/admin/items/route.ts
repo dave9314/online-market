@@ -1,0 +1,38 @@
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "../../auth/[...nextauth]/route"
+import { prisma } from "@/lib/prisma"
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id || session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
+    }
+
+    const items = await prisma.item.findMany({
+      include: {
+        category: true,
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    })
+
+    return NextResponse.json(items)
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch items" },
+      { status: 500 }
+    )
+  }
+}

@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  fullName  String
+  address   String
+  phone     String
+  email     String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items     Item[]
+}
+
+model Category {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  items Item[]
+}
+
+model Item {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  price           Float
+  manufacturedDate String
+  imageUrl        String
+  contactEmail    String
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ratings         Rating[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([ownerId])
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5 stars
+  comment   String?
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([itemId, userId]) // One rating per user per item
+  @@index([itemId])
+}
