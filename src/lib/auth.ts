@@ -18,6 +18,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          console.log("Looking up user:", credentials.username)
           const user = await prisma.user.findUnique({
             where: { username: credentials.username }
           })
@@ -27,6 +28,7 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
+          console.log("User found, checking password...")
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
@@ -53,29 +55,14 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   pages: {
     signIn: "/",
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: true,
-  useSecureCookies: process.env.NODE_ENV === "production",
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === "production" 
-        ? `__Secure-next-auth.session-token`
-        : `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
-    },
-  },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.role = user.role
@@ -84,7 +71,7 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token) {
         session.user.id = token.id as string
         session.user.role = token.role as string
         console.log("Session callback - token added to session:", token.id)
