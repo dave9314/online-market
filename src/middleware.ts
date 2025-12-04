@@ -8,6 +8,8 @@ export const config = {
     "/post-item/:path*", 
     "/admin/:path*", 
     "/my-items/:path*", 
-    "/edit-item/:path*"
+    "/edit-item/:path*",
+    "/profile/:path*",
+    "/top-rated/:path*"
   ],
 }

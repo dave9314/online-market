@@ -28,17 +28,25 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/")
-    } else if (status === "authenticated" && session?.user?.role !== "ADMIN") {
-      router.push("/dashboard")
-    }
-  }, [status, session, router])
+    const init = async () => {
+      // Check authentication
+      if (status === "loading") return
+      
+      if (status === "unauthenticated") {
+        router.push("/")
+        return
+      }
+      
+      if (session?.user?.role !== "ADMIN") {
+        router.push("/dashboard")
+        return
+      }
 
-  useEffect(() => {
-    const fetchUsers = async () => {
+      // Fetch users
       try {
-        const response = await fetch("/api/admin/users")
+        const response = await fetch("/api/admin/users", {
+          cache: 'no-store'
+        })
         if (response.ok) {
           const data = await response.json()
           setUsers(data)
@@ -50,10 +58,8 @@ export default function AdminUsersPage() {
       }
     }
 
-    if (status === "authenticated" && session?.user?.role === "ADMIN") {
-      fetchUsers()
-    }
-  }, [status, session])
+    init()
+  }, [status, session, router])
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("Are you sure you want to delete this user? All their items will be deleted too.")) {
@@ -102,10 +108,30 @@ export default function AdminUsersPage() {
     }
   }
 
-  if (status === "loading" || loading) {
+  if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-10 h-10 border-3 border-gray-300 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="w-10 h-10 border-3 border-gray-300 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Loading users...</p>
+          </div>
+        </main>
       </div>
     )
   }

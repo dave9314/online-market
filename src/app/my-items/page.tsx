@@ -7,7 +7,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Edit, Trash2, Package, Plus, Star } from "lucide-react"
 
 type Item = {
@@ -17,6 +16,8 @@ type Item = {
   imageUrl: string
   createdAt: string
   category: { name: string }
+  averageRating?: number
+  totalRatings?: number
 }
 
 export default function MyItemsPage() {
@@ -26,15 +27,20 @@ export default function MyItemsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/")
-    }
-  }, [status, router])
+    const init = async () => {
+      if (status === "loading") return
+      
+      if (status === "unauthenticated") {
+        router.push("/")
+        return
+      }
 
-  useEffect(() => {
-    const fetchMyItems = async () => {
+      if (status !== "authenticated") return
+
       try {
-        const response = await fetch("/api/my-items", { cache: 'no-store' })
+        const response = await fetch("/api/my-items", { 
+          next: { revalidate: 30 }
+        })
         if (response.ok) {
           const data = await response.json()
           setItems(data)
@@ -46,10 +52,8 @@ export default function MyItemsPage() {
       }
     }
 
-    if (status === "authenticated") {
-      fetchMyItems()
-    }
-  }, [status])
+    init()
+  }, [status, router])
 
   const handleDelete = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this item?")) {
@@ -90,7 +94,8 @@ export default function MyItemsPage() {
       <main className="container mx-auto px-4 py-8">
         <Link
           href="/dashboard"
-          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
+          prefetch={true}
+          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors duration-150"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           Back
@@ -102,8 +107,8 @@ export default function MyItemsPage() {
               <h1 className="text-3xl font-normal text-gray-900 dark:text-white mb-2">My Items</h1>
               <p className="text-gray-600 dark:text-gray-400">Manage your posted items</p>
             </div>
-            <Link href="/post-item">
-              <button className="flex items-center space-x-2 px-5 py-2.5 text-sm bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 rounded transition-all">
+            <Link href="/post-item" prefetch={true}>
+              <button className="flex items-center space-x-2 px-5 py-2.5 text-sm bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 rounded transition-all duration-150 active:scale-95">
                 <Plus className="h-4 w-4" />
                 <span>Post New Item</span>
               </button>
@@ -116,8 +121,8 @@ export default function MyItemsPage() {
             <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Items Yet</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">You haven't posted any items</p>
-            <Link href="/post-item">
-              <button className="inline-flex items-center space-x-2 px-5 py-2.5 text-sm bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 rounded transition-colors">
+            <Link href="/post-item" prefetch={true}>
+              <button className="inline-flex items-center space-x-2 px-5 py-2.5 text-sm bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 rounded transition-all duration-150 active:scale-95">
                 <Plus className="h-4 w-4" />
                 <span>Post Your First Item</span>
               </button>
@@ -126,7 +131,6 @@ export default function MyItemsPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {items.map((item) => {
-              const rating = (Math.random() * 1.5 + 3.5).toFixed(1)
               
               return (
                 <div key={item.id} className="group">
@@ -138,10 +142,18 @@ export default function MyItemsPage() {
                         fill
                         className="object-cover"
                       />
-                      <div className="absolute top-2 right-2 flex items-center space-x-0.5 px-1.5 py-0.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-md shadow-sm">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs font-semibold text-gray-900 dark:text-white">{rating}</span>
-                      </div>
+                      {item.averageRating && item.averageRating > 0 ? (
+                        <div className="absolute top-2 right-2 flex items-center space-x-0.5 px-1.5 py-0.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-md shadow-sm">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white">{item.averageRating}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">({item.totalRatings})</span>
+                        </div>
+                      ) : (
+                        <div className="absolute top-2 right-2 flex items-center space-x-0.5 px-1.5 py-0.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-md shadow-sm">
+                          <Star className="h-3 w-3 text-gray-300 dark:text-gray-600" />
+                          <span className="text-xs text-gray-400 dark:text-gray-500">No ratings</span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-3">
                       <span className="inline-block px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded text-xs font-medium text-blue-600 dark:text-blue-400 mb-1.5">
@@ -159,8 +171,8 @@ export default function MyItemsPage() {
                     </div>
                   </div>
                   <div className="flex space-x-2">
-                    <Link href={`/edit-item/${item.id}`} className="flex-1">
-                      <Button variant="outline" className="w-full text-xs py-1.5">
+                    <Link href={`/edit-item/${item.id}`} prefetch={true} className="flex-1">
+                      <Button variant="outline" className="w-full text-xs py-1.5 transition-all duration-150 active:scale-95">
                         <Edit className="h-3 w-3 mr-1" />
                         Edit
                       </Button>
@@ -168,7 +180,7 @@ export default function MyItemsPage() {
                     <Button
                       variant="destructive"
                       onClick={() => handleDelete(item.id)}
-                      className="flex-1 text-xs py-1.5"
+                      className="flex-1 text-xs py-1.5 transition-all duration-150 active:scale-95"
                     >
                       <Trash2 className="h-3 w-3 mr-1" />
                       Delete

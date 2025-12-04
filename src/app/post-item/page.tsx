@@ -40,6 +40,11 @@ export default function PostItemPage() {
     if (status === "unauthenticated") {
       router.push("/")
     }
+    
+    // Prevent browser form restoration
+    if (typeof window !== 'undefined') {
+      window.history.scrollRestoration = 'manual'
+    }
   }, [status, router])
 
   useEffect(() => {
@@ -160,7 +165,8 @@ export default function PostItemPage() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Link
           href="/dashboard"
-          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
+          prefetch={true}
+          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors duration-150"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           Back
@@ -172,7 +178,8 @@ export default function PostItemPage() {
           </CardHeader>
           
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
+              <input type="text" name="prevent_autofill" style={{ display: 'none' }} />
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                   Item Name *
@@ -183,6 +190,8 @@ export default function PostItemPage() {
                   className="mt-1.5"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  autoComplete="off"
+                  data-form-type="other"
                   required
                 />
               </div>
@@ -197,6 +206,8 @@ export default function PostItemPage() {
                   className="mt-1.5"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  autoComplete="off"
+                  data-form-type="other"
                 />
               </div>
 
@@ -241,6 +252,8 @@ export default function PostItemPage() {
                     className="mt-1.5"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    autoComplete="off"
+                    data-form-type="other"
                     required
                   />
                 </div>
@@ -255,6 +268,8 @@ export default function PostItemPage() {
                     className="mt-1.5"
                     value={formData.manufacturedDate}
                     onChange={(e) => setFormData({ ...formData, manufacturedDate: e.target.value })}
+                    autoComplete="off"
+                    data-form-type="other"
                     required
                   />
                 </div>
@@ -271,6 +286,8 @@ export default function PostItemPage() {
                   className="mt-1.5"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                  autoComplete="off"
+                  data-form-type="other"
                   required
                 />
               </div>
@@ -321,7 +338,7 @@ export default function PostItemPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                className="w-full bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200 transition-all duration-150 active:scale-95"
                 disabled={loading}
               >
                 {loading ? "Posting..." : "Post Item"}

@@ -29,17 +29,23 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/")
-    } else if (status === "authenticated" && session?.user?.role !== "ADMIN") {
-      router.push("/dashboard")
-    }
-  }, [status, session, router])
+    const init = async () => {
+      if (status === "loading") return
+      
+      if (status === "unauthenticated") {
+        router.push("/")
+        return
+      }
+      
+      if (session?.user?.role !== "ADMIN") {
+        router.push("/dashboard")
+        return
+      }
 
-  useEffect(() => {
-    const fetchStats = async () => {
       try {
-        const response = await fetch("/api/admin/stats")
+        const response = await fetch("/api/admin/stats", {
+          cache: 'no-store'
+        })
         if (response.ok) {
           const data = await response.json()
           setStats(data)
@@ -51,10 +57,8 @@ export default function AdminDashboard() {
       }
     }
 
-    if (status === "authenticated" && session?.user?.role === "ADMIN") {
-      fetchStats()
-    }
-  }, [status, session])
+    init()
+  }, [status, session, router])
 
   if (status === "loading" || loading) {
     return (
@@ -84,8 +88,8 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Link href="/admin/users">
-            <Card className="border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 cursor-pointer hover:shadow-md transition-all">
+          <Link href="/admin/users" prefetch={true}>
+            <Card className="border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 cursor-pointer hover:shadow-md transition-all duration-150 active:scale-95">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <Users className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -97,8 +101,8 @@ export default function AdminDashboard() {
             </Card>
           </Link>
 
-          <Link href="/admin/users">
-            <Card className="border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 cursor-pointer hover:shadow-md transition-all">
+          <Link href="/admin/users" prefetch={true}>
+            <Card className="border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 cursor-pointer hover:shadow-md transition-all duration-150 active:scale-95">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <ShoppingCart className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -110,8 +114,8 @@ export default function AdminDashboard() {
             </Card>
           </Link>
 
-          <Link href="/admin/items">
-            <Card className="border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 cursor-pointer hover:shadow-md transition-all">
+          <Link href="/admin/items" prefetch={true}>
+            <Card className="border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 cursor-pointer hover:shadow-md transition-all duration-150 active:scale-95">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <Package className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -143,7 +147,8 @@ export default function AdminDashboard() {
             <CardContent className="p-4 space-y-2">
               <Link
                 href="/admin/users"
-                className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                prefetch={true}
+                className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all duration-150"
               >
                 <div className="flex items-center">
                   <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-3" />
@@ -156,7 +161,8 @@ export default function AdminDashboard() {
 
               <Link
                 href="/admin/items"
-                className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors"
+                prefetch={true}
+                className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-gray-700 transition-all duration-150"
               >
                 <div className="flex items-center">
                   <Package className="h-4 w-4 text-purple-600 dark:text-purple-400 mr-3" />

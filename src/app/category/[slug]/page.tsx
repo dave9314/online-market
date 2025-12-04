@@ -5,7 +5,6 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Navbar } from "@/components/navbar"
-import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Package, Star } from "lucide-react"
 
 type Item = {
@@ -14,6 +13,8 @@ type Item = {
   price: number
   imageUrl: string
   category: { name: string; slug: string }
+  averageRating?: number
+  totalRatings?: number
 }
 
 export default function CategoryPage() {
@@ -83,7 +84,8 @@ export default function CategoryPage() {
       <main className="container mx-auto px-4 py-8">
         <Link
           href="/dashboard"
-          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
+          prefetch={true}
+          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors duration-150"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           Back
@@ -108,11 +110,10 @@ export default function CategoryPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {items.map((item) => {
-              const rating = (Math.random() * 1.5 + 3.5).toFixed(1)
               
               return (
-                <Link key={item.id} href={`/item/${item.id}`}>
-                  <div className="group cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-900 transition-all">
+                <Link key={item.id} href={`/item/${item.id}`} prefetch={true}>
+                  <div className="group cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-900 transition-all duration-150">
                     <div className="relative h-48 bg-gray-50 dark:bg-gray-800">
                       <Image
                         src={item.imageUrl}
@@ -120,10 +121,18 @@ export default function CategoryPage() {
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute top-2 right-2 flex items-center space-x-0.5 px-1.5 py-0.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-md shadow-sm">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs font-semibold text-gray-900 dark:text-white">{rating}</span>
-                      </div>
+                      {item.averageRating && item.averageRating > 0 ? (
+                        <div className="absolute top-2 right-2 flex items-center space-x-0.5 px-1.5 py-0.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-md shadow-sm">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white">{item.averageRating}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">({item.totalRatings})</span>
+                        </div>
+                      ) : (
+                        <div className="absolute top-2 right-2 flex items-center space-x-0.5 px-1.5 py-0.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-md shadow-sm">
+                          <Star className="h-3 w-3 text-gray-300 dark:text-gray-600" />
+                          <span className="text-xs text-gray-400 dark:text-gray-500">No ratings</span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-3">
                       <span className="inline-block px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded text-xs font-medium text-blue-600 dark:text-blue-400 mb-1.5">

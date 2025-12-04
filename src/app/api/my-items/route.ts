@@ -18,11 +18,41 @@ export async function GET() {
       where: { ownerId: session.user.id },
       include: {
         category: true,
+        _count: {
+          select: {
+            ratings: true,
+          }
+        }
       },
       orderBy: { createdAt: "desc" }
     })
 
-    return NextResponse.json(items)
+    // Get average ratings
+    const itemIds = items.map(item => item.id)
+    const ratings = await prisma.rating.groupBy({
+      by: ['itemId'],
+      where: {
+        itemId: {
+          in: itemIds
+        }
+      },
+      _avg: {
+        rating: true
+      }
+    })
+
+    // Map ratings to items
+    const ratingsMap = new Map(
+      ratings.map(r => [r.itemId, r._avg.rating || 0])
+    )
+
+    const itemsWithRatings = items.map(item => ({
+      ...item,
+      averageRating: Number((ratingsMap.get(item.id) || 0).toFixed(1)),
+      totalRatings: item._count.ratings,
+    }))
+
+    return NextResponse.json(itemsWithRatings)
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch items" },

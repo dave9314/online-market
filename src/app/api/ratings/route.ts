@@ -63,6 +63,18 @@ export async function GET(request: NextRequest) {
 
     const ratings = await prisma.rating.findMany({
       where: { itemId },
+      include: {
+        item: {
+          select: {
+            owner: {
+              select: {
+                fullName: true,
+                username: true,
+              }
+            }
+          }
+        }
+      },
       orderBy: { createdAt: "desc" },
     })
 

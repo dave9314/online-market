@@ -7,6 +7,13 @@ import { ShoppingBag, LogOut, Menu, X, Moon, Sun, Package } from "lucide-react"
 import { useState } from "react"
 import { useTheme } from "./theme-provider"
 
+// Prefetch links on hover for faster navigation
+const PrefetchLink = ({ href, children, className, ...props }: any) => (
+  <Link href={href} prefetch={true} className={className} {...props}>
+    {children}
+  </Link>
+)
+
 export function Navbar() {
   const { data: session } = useSession()
   const { theme, toggleTheme } = useTheme()
@@ -19,12 +26,12 @@ export function Navbar() {
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center space-x-1.5 group">
+          <PrefetchLink href="/dashboard" className="flex items-center space-x-1.5 group">
             <div className="p-1.5 bg-gray-900 dark:bg-white rounded-lg group-hover:bg-gray-800 dark:group-hover:bg-gray-100 transition-colors">
               <ShoppingBag className="h-4 w-4 text-white dark:text-black" />
             </div>
             <span className="text-sm font-semibold text-gray-900 dark:text-white">Marketplace</span>
-          </Link>
+          </PrefetchLink>
 
           {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-md mx-6">
@@ -59,24 +66,33 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-2">
             {session?.user && (
               <>
-                <Link href="/my-items">
-                  <button className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-all">
+                <PrefetchLink href="/top-rated">
+                  <button className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-all duration-150">
+                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <span>Top Rated</span>
+                  </button>
+                </PrefetchLink>
+                
+                <PrefetchLink href="/my-items">
+                  <button className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-all duration-150">
                     <Package className="h-3.5 w-3.5" />
                     <span>My Items</span>
                   </button>
-                </Link>
+                </PrefetchLink>
                 
                 {session.user.role === "ADMIN" && (
-                  <Link href="/admin">
-                    <button className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-all">
+                  <PrefetchLink href="/admin">
+                    <button className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-all duration-150">
                       Admin
                     </button>
-                  </Link>
+                  </PrefetchLink>
                 )}
                 
                 <button
                   onClick={toggleTheme}
-                  className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-all"
+                  className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-all duration-150"
                   title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
                 >
                   {theme === "light" ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
@@ -84,11 +100,22 @@ export function Navbar() {
 
                 <div className="h-4 w-px bg-gray-200 dark:bg-gray-800 mx-1"></div>
                 
-                <span className="text-xs text-gray-600 dark:text-gray-400 px-2">{session.user.name}</span>
+                <PrefetchLink href="/profile">
+                  <button className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-all duration-150">
+                    {session.user.name}
+                  </button>
+                </PrefetchLink>
                 
                 <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                  onClick={async () => {
+                    // Show signout page first, then complete logout
+                    router.push("/signout")
+                    await signOut({ callbackUrl: "/", redirect: false })
+                    setTimeout(() => {
+                      router.push("/")
+                    }, 1500)
+                  }}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-150"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   <span>Logout</span>
@@ -127,8 +154,15 @@ export function Navbar() {
               {session.user.name}
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-gray-50 dark:hover:bg-gray-900 rounded transition-colors"
+              onClick={async () => {
+                // Show signout page first, then complete logout
+                router.push("/signout")
+                await signOut({ callbackUrl: "/", redirect: false })
+                setTimeout(() => {
+                  router.push("/")
+                }, 1500)
+              }}
+              className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-gray-50 dark:hover:bg-gray-900 rounded transition-colors duration-150"
             >
               Logout
             </button>

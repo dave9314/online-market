@@ -27,17 +27,23 @@ export default function AdminItemsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/")
-    } else if (status === "authenticated" && session?.user?.role !== "ADMIN") {
-      router.push("/dashboard")
-    }
-  }, [status, session, router])
+    const init = async () => {
+      if (status === "loading") return
+      
+      if (status === "unauthenticated") {
+        router.push("/")
+        return
+      }
+      
+      if (session?.user?.role !== "ADMIN") {
+        router.push("/dashboard")
+        return
+      }
 
-  useEffect(() => {
-    const fetchItems = async () => {
       try {
-        const response = await fetch("/api/admin/items")
+        const response = await fetch("/api/admin/items", {
+          cache: 'no-store'
+        })
         if (response.ok) {
           const data = await response.json()
           setItems(data)
@@ -49,10 +55,8 @@ export default function AdminItemsPage() {
       }
     }
 
-    if (status === "authenticated" && session?.user?.role === "ADMIN") {
-      fetchItems()
-    }
-  }, [status, session])
+    init()
+  }, [status, session, router])
 
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this item?")) {

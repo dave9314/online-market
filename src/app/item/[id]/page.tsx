@@ -7,7 +7,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Mail, Calendar, Tag, Trash2, User as UserIcon, Star, Edit } from "lucide-react"
 
 type Item = {
@@ -35,13 +34,20 @@ export default function ItemPage() {
   const [averageRating, setAverageRating] = useState(0)
   const [totalRatings, setTotalRatings] = useState(0)
   const [submittingRating, setSubmittingRating] = useState(false)
+  const [comment, setComment] = useState("")
+  const [userComment, setUserComment] = useState("")
+  const [allRatings, setAllRatings] = useState<any[]>([])
 
   useEffect(() => {
     const fetchItem = async () => {
       try {
         const [itemResponse, ratingsResponse] = await Promise.all([
-          fetch(`/api/items/${params.id}`),
-          fetch(`/api/ratings?itemId=${params.id}`)
+          fetch(`/api/items/${params.id}`, {
+            next: { revalidate: 60 } // Cache for 60 seconds
+          }),
+          fetch(`/api/ratings?itemId=${params.id}`, {
+            next: { revalidate: 30 } // Cache for 30 seconds
+          })
         ])
         
         if (itemResponse.ok) {
@@ -53,11 +59,14 @@ export default function ItemPage() {
           const ratingsData = await ratingsResponse.json()
           setAverageRating(ratingsData.averageRating)
           setTotalRatings(ratingsData.totalRatings)
+          setAllRatings(ratingsData.ratings || [])
           
           // Find user's rating if exists
           const myRating = ratingsData.ratings.find((r: any) => r.userId === session?.user?.id)
           if (myRating) {
             setUserRating(myRating.rating)
+            setUserComment(myRating.comment || "")
+            setComment(myRating.comment || "")
           }
         }
       } catch (error) {
@@ -94,31 +103,47 @@ export default function ItemPage() {
   }
 
   const handleRating = async (rating: number) => {
-    if (!session?.user || isOwner) return
+    if (!session?.user || isOwner || rating === 0) return
     
     setSubmittingRating(true)
     try {
+      const commentToSend = comment.trim() || null
+      console.log("Submitting rating:", { rating, comment: commentToSend })
+      
       const response = await fetch("/api/ratings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itemId: params.id,
           rating,
+          comment: commentToSend,
         }),
       })
 
       if (response.ok) {
-        setUserRating(rating)
+        const result = await response.json()
+        console.log("Rating submitted successfully:", result)
+        setUserComment(comment.trim())
+        
         // Refresh ratings
-        const ratingsResponse = await fetch(`/api/ratings?itemId=${params.id}`)
+        const ratingsResponse = await fetch(`/api/ratings?itemId=${params.id}`, {
+          cache: 'no-store'
+        })
         if (ratingsResponse.ok) {
           const ratingsData = await ratingsResponse.json()
+          console.log("Refreshed ratings:", ratingsData)
           setAverageRating(ratingsData.averageRating)
           setTotalRatings(ratingsData.totalRatings)
+          setAllRatings(ratingsData.ratings || [])
         }
+      } else {
+        const error = await response.json()
+        console.error("Failed to submit rating:", error)
+        alert("Failed to submit review. Please try again.")
       }
     } catch (error) {
       console.error("Failed to submit rating:", error)
+      alert("Failed to submit review. Please try again.")
     } finally {
       setSubmittingRating(false)
     }
@@ -156,6 +181,7 @@ export default function ItemPage() {
       <main className="container mx-auto px-4 py-8">
         <Link
           href="/dashboard"
+          prefetch={true}
           className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
@@ -204,30 +230,68 @@ export default function ItemPage() {
               
               {/* User Rating Input */}
               {session?.user && !isOwner && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {userRating > 0 ? 'Your rating:' : 'Rate this item:'}
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-3">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {userRating > 0 ? 'Update your review:' : 'Write a review:'}
                   </p>
-                  <div className="flex items-center space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => handleRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        disabled={submittingRating}
-                        className="transition-transform hover:scale-110 disabled:opacity-50"
-                      >
-                        <Star
-                          className={`h-6 w-6 ${
-                            star <= (hoverRating || userRating)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300 dark:text-gray-600'
-                          }`}
-                        />
-                      </button>
-                    ))}
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Rating:</p>
+                    <div className="flex items-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setUserRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          disabled={submittingRating}
+                          type="button"
+                          className="transition-transform hover:scale-110 disabled:opacity-50"
+                        >
+                          <Star
+                            className={`h-6 w-6 ${
+                              star <= (hoverRating || userRating)
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                      {userRating > 0 && (
+                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                          {userRating} {userRating === 1 ? 'star' : 'stars'}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Comment Input */}
+                  <div>
+                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-2">
+                      Comment (optional):
+                    </label>
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Share your thoughts about this item..."
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 resize-none"
+                      rows={3}
+                      disabled={submittingRating}
+                    />
+                  </div>
+                  
+                  <Button
+                    onClick={() => handleRating(userRating)}
+                    disabled={submittingRating || userRating === 0}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-all duration-150 active:scale-95"
+                  >
+                    {submittingRating ? 'Submitting...' : userComment ? 'Update Review' : 'Submit Review'}
+                  </Button>
+                  
+                  {userRating === 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Please select a star rating before submitting
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -273,10 +337,10 @@ export default function ItemPage() {
 
             {isOwner && (
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
-                <Link href={`/edit-item/${item.id}`} className="block">
+                <Link href={`/edit-item/${item.id}`} prefetch={true} className="block">
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full transition-all duration-150 active:scale-95"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Item
@@ -286,7 +350,7 @@ export default function ItemPage() {
                   variant="destructive"
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="w-full"
+                  className="w-full transition-all duration-150 active:scale-95"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   {deleting ? "Deleting..." : "Delete Item"}
@@ -295,6 +359,62 @@ export default function ItemPage() {
             )}
           </div>
         </div>
+
+        {/* Reviews Section */}
+        {allRatings.length > 0 && (
+          <div className="max-w-6xl mx-auto mt-12">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              Customer Reviews ({allRatings.length})
+            </h2>
+            <div className="space-y-4">
+              {allRatings.map((review) => (
+                <div
+                  key={review.id}
+                  className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-5"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= review.rating
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {review.rating}.0
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(review.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  
+                  {review.comment && (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {review.comment}
+                    </p>
+                  )}
+                  
+                  {!review.comment && (
+                    <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+                      No comment provided
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

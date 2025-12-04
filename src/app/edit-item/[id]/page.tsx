@@ -53,6 +53,11 @@ export default function EditItemPage() {
     if (status === "unauthenticated") {
       router.push("/")
     }
+    
+    // Prevent browser form restoration
+    if (typeof window !== 'undefined') {
+      window.history.scrollRestoration = 'manual'
+    }
   }, [status, router])
 
   useEffect(() => {
@@ -169,7 +174,8 @@ export default function EditItemPage() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Link
           href="/my-items"
-          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
+          prefetch={true}
+          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors duration-150"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to My Items
@@ -180,13 +186,16 @@ export default function EditItemPage() {
             <CardTitle className="text-2xl font-normal text-gray-900 dark:text-white">Edit Item</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+              <input type="text" name="prevent_autofill" style={{ display: 'none' }} />
               <div>
                 <Label htmlFor="name">Item Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  autoComplete="off"
+                  data-form-type="other"
                   required
                 />
               </div>
@@ -197,6 +206,8 @@ export default function EditItemPage() {
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  autoComplete="off"
+                  data-form-type="other"
                 />
               </div>
 
@@ -229,6 +240,8 @@ export default function EditItemPage() {
                     step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    autoComplete="off"
+                    data-form-type="other"
                     required
                   />
                 </div>
@@ -240,6 +253,8 @@ export default function EditItemPage() {
                     type="date"
                     value={formData.manufacturedDate}
                     onChange={(e) => setFormData({ ...formData, manufacturedDate: e.target.value })}
+                    autoComplete="off"
+                    data-form-type="other"
                     required
                   />
                 </div>
@@ -252,6 +267,8 @@ export default function EditItemPage() {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                  autoComplete="off"
+                  data-form-type="other"
                   required
                 />
               </div>
@@ -296,11 +313,11 @@ export default function EditItemPage() {
               )}
 
               <div className="flex space-x-3">
-                <Button type="submit" className="flex-1" disabled={loading}>
+                <Button type="submit" className="flex-1 transition-all duration-150 active:scale-95" disabled={loading}>
                   {loading ? "Updating..." : "Update Item"}
                 </Button>
-                <Link href="/my-items" className="flex-1">
-                  <Button type="button" variant="outline" className="w-full">
+                <Link href="/my-items" prefetch={true} className="flex-1">
+                  <Button type="button" variant="outline" className="w-full transition-all duration-150 active:scale-95">
                     Cancel
                   </Button>
                 </Link>
